@@ -692,7 +692,19 @@ async function loadData(){
     const text = await res.text();
     qaDatabase = JSON.parse(text);
     if(!Array.isArray(qaDatabase)) throw new Error('بيانات غير صالحة');
-    fuse = new Fuse(qaDatabase, {keys:['q'], threshold:0.6});
+    // إضافة نسخة مطبَّعة لكل سؤال في قاعدة البيانات
+    qaDatabase = qaDatabase.map(item => ({
+      ...item,
+      _qn: normalizeAr(item.q || '')
+    }));
+
+    fuse = new Fuse(qaDatabase, {
+      keys: ['_qn'],
+      threshold: 0.35,
+      distance: 100,
+      minMatchCharLength: 2,
+      includeScore: true
+    });
     chatArea.innerHTML = '';
     addWelcome();
     userInput.disabled = false;
@@ -707,6 +719,20 @@ async function loadData(){
   }
 }
 
+/* ── تطبيع النص العربي ─────────────────────────────────── */
+function normalizeAr(s){
+  return s
+    .replace(/[ً-ٰٟ]/g, '')   // إزالة التشكيل
+    .replace(/[أإآ]/g, 'ا')                  // توحيد الألف
+    .replace(/ة/g, 'ه')                       // تاء مربوطة → هاء
+    .replace(/ى/g, 'ي')                       // ألف مقصورة → ياء
+    .replace(/[\u0600-\u0605\u060C-\u060F\u061B-\u061F\u066A-\u066D\u06D4]/g, '') // علامات ترقيم عربية
+    .replace(/[^\u0621-\u063A\u0641-\u064A\u0660-\u0669a-zA-Z0-9 ]/g, '') // حروف عربية وأرقام فقط
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 /* ── SEND ────────────────────────────────────────────────── */
 function handleSend(){
   const text = userInput.value.trim();
@@ -717,11 +743,21 @@ function handleSend(){
   showTyping();
   setTimeout(()=>{
     removeTyping();
-    const results = fuse ? fuse.search(text) : [];
-    if(results.length>0){
-      addBot(results[0].item.a, results[0].item.category);
+
+    if(!fuse){ addBot('جاري التحميل، انتظر لحظة...'); return; }
+
+    const normQuery = normalizeAr(text);
+
+    // 1) بحث مباشر بالنص المطبَّع (أدق)
+    const results = fuse.search(normQuery);
+
+    // 2) قبول النتيجة فقط لو درجة تشابهها مقبولة (score أقل = أدق في Fuse)
+    const best = results.find(r => r.score !== undefined && r.score <= 0.35);
+
+    if(best){
+      addBot(best.item.a, best.item.category);
     } else {
-      addBot('عذراً، ليس لديّ إجابة على هذا السؤال حالياً 🤔');
+      addBot('عذراً، لا تتوفر إجابة على هذا السؤال حالياً 🤔<br><span style="font-size:0.80rem;opacity:0.6">حاول إعادة صياغة السؤال</span>');
     }
     playSound('received');
   }, 650);

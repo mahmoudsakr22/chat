@@ -3,48 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شات بوت - تصحيح الأخطاء</title>
+    <title>المساعد الذكي - Chatbot</title>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        body { font-family: 'Cairo', sans-serif; background: #f4f6f9; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        .container { width: 100%; max-width: 600px; height: 90vh; background: #fff; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-        header { background: #0056b3; color: white; padding: 20px; display: flex; align-items: center; justify-content: space-between; }
-        .chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { max-width: 85%; padding: 12px 16px; border-radius: 15px; line-height: 1.5; font-size: 0.95rem; word-wrap: break-word; }
-        .message.bot { align-self: flex-start; background: #e9ecef; color: #333; }
-        .message.user { align-self: flex-end; background: #0056b3; color: white; }
-        .debug-info { font-size: 0.75rem; color: #d9534f; margin-top: 5px; border-top: 1px solid #ccc; padding-top: 5px; }
-        .category-tag { display: inline-block; font-size: 0.7rem; padding: 2px 6px; background: rgba(0,0,0,0.1); border-radius: 4px; margin-bottom: 5px; font-weight: bold; }
-        .input-area { padding: 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: #fff; }
-        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; outline: none; }
-        button { width: 45px; height: 45px; background: #0056b3; color: white; border: none; border-radius: 50%; cursor: pointer; }
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --user-msg-bg: #667eea;
+            --bot-msg-bg: #ffffff;
+            --bg-gradient: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            height: 95vh;
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header الجديد */
+        header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-avatar {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00e676;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #00e676;
+        }
+
+        /* منطقة الشات */
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-image: radial-gradient(#e5e5e5 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* رسالة كاملة */
+        .message-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .message-row.user {
+            flex-direction: row-reverse;
+        }
+
+        /* الصورة الرمزية للرسالة */
+        .msg-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-row.user .msg-avatar {
+            background: #667eea;
+            color: white;
+        }
+
+        .message-row.bot .msg-avatar {
+            background: #fff;
+            color: #764ba2;
+            border: 1px solid #eee;
+        }
+
+        /* الفقاعة */
+        .bubble {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message-row.user .bubble {
+            background: var(--user-msg-bg);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-row.bot .bubble {
+            background: var(--bot-msg-bg);
+            color: #333;
+            border-bottom-right-radius: 4px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .time {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            margin-top: 5px;
+            display: block;
+            text-align: left;
+        }
+        
+        .message-row.user .time { text-align: right; }
+
+        /* التصنيف والديباج */
+        .category-tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .message-row.user .category-tag {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .debug-info {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #ddd;
+            font-family: monospace;
+            display: block;
+        }
+
+        /* منطقة الإدخال */
+        .input-area {
+            padding: 15px;
+            background: #fff;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 50px 14px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 30px;
+            background: #f8f9fa;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input:focus {
+            background: #fff;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3);
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(118, 75, 162, 0.4);
+        }
+        
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+
+        /* Scrollbar */
+        .chat-area::-webkit-scrollbar { width: 6px; }
+        .chat-area::-webkit-scrollbar-track { background: transparent; }
+        .chat-area::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <div>
-            <h2>وضع التصحيح (Debug)</h2>
-            <span>سيخبرك بالنتائج المتاحة</span>
+        <div class="header-info">
+            <div class="header-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.1rem;">المساعد الذكي</h2>
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    <span>متصل الآن</span>
+                </div>
+            </div>
         </div>
-        <i class="fas fa-bug"></i>
+        <i class="fas fa-ellipsis-v" style="opacity: 0.8; cursor: pointer;"></i>
     </header>
 
     <div class="chat-area" id="chatArea">
-        <div class="message bot">جاري التحميل...</div>
+        <div class="message-row bot">
+            <div class="msg-avatar"><i class="fas fa-robot"></i></div>
+            <div class="bubble">جاري الاتصال بقاعدة البيانات وتحميل الأسئلة... ⏳</div>
+        </div>
     </div>
 
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="اكتب سؤالك هنا..." disabled>
+        <div class="input-wrapper">
+            <input type="text" id="userInput" placeholder="اكتب سؤالك هنا..." disabled autocomplete="off">
+        </div>
         <button id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
     </div>
 </div>
 
 <script>
+    // الرابط الخاص بقاعدة البيانات الخاص بك (لم يتغير)
     const DB_URL = "https://script.google.com/macros/s/AKfycbyCKi3ix9w5uulvq29n8fCRoIXMwv4X2FKQoahDHYScR5kQEn__2He6hmObMgfjXPg/exec";
 
     let qaDatabase = [];
@@ -59,31 +311,56 @@
             const data = await response.json();
             
             qaDatabase = data;
-            const fuseOptions = { keys: ['q'], threshold: 0.4 }; // 0.4 = يسمح بـ 40% خطأ
+            const fuseOptions = { keys: ['q'], threshold: 0.4 };
             fuse = new Fuse(qaDatabase, fuseOptions);
 
             chatArea.innerHTML = '';
             
-            // رسالة نجاح التحميل
-            addMessage("تم التحميل ✅<br>عدد الأسئلة في الإكسيل: " + qaDatabase.length, 'bot');
+            // رسالة ترحيب جديدة بالتصميم الجديد
+            addMessage(`تم التحميل بنجاح ✅<br>عدد الأسئلة في الإكسيل: ${qaDatabase.length}<br>يمكنك الآن البدء بالسؤال.`, 'bot');
             
             userInput.disabled = false;
             sendBtn.disabled = false;
             userInput.focus();
         } catch (error) {
-            chatArea.innerHTML = '<div class="message bot">فشل التحميل ❌<br>' + error.message + '</div>';
+            chatArea.innerHTML = '';
+            addMessage(`حدث خطأ في الاتصال ❌<br>${error.message}`, 'bot');
         }
     }
 
     function addMessage(text, sender, category = null, debugText = null) {
-        const div = document.createElement('div');
-        div.className = `message ${sender}`;
+        const rowDiv = document.createElement('div');
+        rowDiv.className = `message-row ${sender}`;
+        
+        // إضافة الأيقونة حسب المرسل
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'msg-avatar';
+        if (sender === 'bot') {
+            avatarDiv.innerHTML = '<i class="fas fa-robot"></i>';
+        } else {
+            avatarDiv.innerHTML = '<i class="fas fa-user"></i>';
+        }
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'bubble';
+        
         let html = '';
         if (category) html += `<div class="category-tag">${category}</div>`;
         html += text;
+        
+        // إضافة الوقت الحالي
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        html += `<span class="time">${timeStr}</span>`;
+        
         if (debugText) html += `<div class="debug-info">${debugText}</div>`;
-        div.innerHTML = html;
-        chatArea.appendChild(div);
+        
+        bubbleDiv.innerHTML = html;
+
+        rowDiv.appendChild(avatarDiv);
+        rowDiv.appendChild(bubbleDiv);
+        
+        chatArea.appendChild(rowDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
     }
 
@@ -97,16 +374,11 @@
         const results = fuse.search(text);
 
         if (results.length > 0) {
-            // عرض أفضل نتيجة
             const bestMatch = results[0];
-            addMessage(bestMatch.item.a, 'bot', bestMatch.item.category, `درجة التطابق: ${(1-bestMatch.score).toFixed(2)} من 1.0`);
+            addMessage(bestMatch.item.a, 'bot', bestMatch.item.category, `دقة: ${((1-bestMatch.score)*100).toFixed(0)}%`);
         } else {
-            // === التعديل الأهم هنا ===
-            // إذا لم يجد النتيجة، يعرض قائمة الأسئلة الموجودة
             let allQuestions = qaDatabase.map(item => "• " + item.q).join("<br>");
-            let errorHtml = `لم أجد إجابة 😕<br><br>
-                             <b>الأسئلة المتوفرة في الإكسيل هي:</b><br>
-                             ${allQuestions}`;
+            let errorHtml = `لم أجد إجابة 😕<br><br><b>الأسئلة المتوفرة:</b><br>${allQuestions}`;
             addMessage(errorHtml, 'bot');
         }
     }

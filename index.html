@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المساعد الذكي</title>
+    <title>المساعد الذكي - فهم قوي</title>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -30,10 +30,6 @@
 
         .chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; }
         body.dark-mode .chat-area { background-image: radial-gradient(#444 1px, transparent 1px); }
-
-        .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .chip { background: rgba(102, 126, 234, 0.1); color: #667eea; border: 1px solid #667eea; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-        .chip:hover { background: #667eea; color: white; transform: translateY(-2px); }
 
         .message-row { display: flex; align-items: flex-end; gap: 10px; width: 100%; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -122,15 +118,12 @@
 
     function playSound(type) {
         if (!isSoundOn) return;
-        
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
         osc.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         if (type === 'sent') {
-            // صوت إرسال (موجة سينية مرتفعة قصيرة)
             osc.type = 'sine';
             osc.frequency.setValueAtTime(600, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
@@ -139,7 +132,6 @@
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
         } else if (type === 'received') {
-            // صوت استلام (نغمتين لطيفة)
             osc.type = 'sine';
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
@@ -169,20 +161,20 @@
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
 
-    // أزرار الاقتراحات
-    const suggestions = ["كلمة سر console", "اسم السويتش", "ما هو الـ IP؟", "SSH settings"];
-
     async function loadData() {
         try {
             const response = await fetch(DB_URL);
             const data = await response.json();
             qaDatabase = data;
-            fuse = new Fuse(qaDatabase, { keys: ['q'], threshold: 0.4 });
+            
+            // التغيير هنا: رفع التشابه إلى 0.6 لزيادة الفهم والمرح مع الأخطاء والتباين في الصياغة
+            const fuseOptions = { keys: ['q'], threshold: 0.6 }; 
+            fuse = new Fuse(qaDatabase, fuseOptions);
 
             chatArea.innerHTML = '';
             
-            // رسالة ترحيب بسيطة ومرحبة
-            addMessage("أهلاً بك! 👋<br>أنا مساعدك الذكي، جرب أن تسألني عن أي شيء.", 'bot', null, null, true); 
+            // رسالة ترحيب عامة بدون اقتراحات
+            addMessage("مرحباً بك! 👋<br>أنا مساعدك الذكي، يمكنك سؤالي أي شيء وسأجيبك.", 'bot');
 
             userInput.disabled = false;
             sendBtn.disabled = false;
@@ -193,7 +185,7 @@
         }
     }
 
-    function addMessage(text, sender, category = null, debugText = null, isWelcome = false) {
+    function addMessage(text, sender, category = null) {
         const rowDiv = document.createElement('div');
         rowDiv.className = `message-row ${sender}`;
         
@@ -219,20 +211,6 @@
         rowDiv.appendChild(avatarDiv);
         rowDiv.appendChild(bubbleDiv);
         chatArea.appendChild(rowDiv);
-
-        // إضافة أزرار الاقتراحات إذا كانت رسالة ترحيب
-        if (isWelcome) {
-            const suggestionsDiv = document.createElement('div');
-            suggestionsDiv.className = 'suggestions';
-            suggestions.forEach(q => {
-                const btn = document.createElement('button');
-                btn.className = 'chip';
-                btn.innerText = q;
-                btn.onclick = () => handleSearch(q); 
-                suggestionsDiv.appendChild(btn);
-            });
-            rowDiv.appendChild(suggestionsDiv);
-        }
 
         chatArea.scrollTop = chatArea.scrollHeight;
     }
@@ -260,12 +238,12 @@
         if (typingRow) typingRow.remove();
     }
 
-    function handleSearch(forceText = null) {
-        const text = forceText || userInput.value.trim();
+    function handleSearch() {
+        const text = userInput.value.trim();
         if (!text) return;
 
         addMessage(text, 'user');
-        playSound('sent'); // صوت الإرسال
+        playSound('sent');
         userInput.value = '';
 
         showTyping();
@@ -276,12 +254,12 @@
 
             if (results.length > 0) {
                 const bestMatch = results[0];
-                playSound('received'); // صوت الاستلام
-                addMessage(bestMatch.item.a, 'bot', bestMatch.item.category); // عرض بدون معلومات التصحيح
+                playSound('received');
+                // عرض الإجابة فقط (بدون دقة)
+                addMessage(bestMatch.item.a, 'bot', bestMatch.item.category);
             } else {
                 playSound('received');
-                // رد عام بدلاً من قائمة الأسئلة
-                addMessage("عذراً، ليس لدي إجابة على هذا السؤال حالياً. حاول أن تسأل بطريقة أخرى.", 'bot');
+                addMessage("عذراً، ليس لدي إجابة على هذا السؤال حالياً.", 'bot');
             }
         }, 600);
     }
